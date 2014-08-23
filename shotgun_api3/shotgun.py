@@ -41,6 +41,7 @@ import re
 import copy
 import stat         # used for attachment upload
 import sys
+import threading
 import time
 import types
 import urllib
@@ -311,7 +312,7 @@ class Shotgun(object):
         self.config.sudo_as_login = sudo_as_login
         self.config.convert_datetimes_to_utc = convert_datetimes_to_utc
         self.config.no_ssl_validation = NO_SSL_VALIDATION
-        self._connection = None
+        self._thread_locals = threading.local()
         self.__ca_certs = ca_certs
 
         self.base_url = (base_url or "").lower()
@@ -1855,6 +1856,14 @@ class Shotgun(object):
     # ========================================================================
     # Connection Functions
 
+    @property
+    def _connection(self):
+        return getattr(self._thread_locals, 'connection', None)
+
+    @_connection.setter
+    def _connection(self, value):
+        self._thread_locals.connection = value
+    
     def _get_connection(self):
         """Returns the current connection or creates a new connection to the
         current server.
